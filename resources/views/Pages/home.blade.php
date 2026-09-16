@@ -13,7 +13,7 @@
 
         <h1
             class="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-white mb-6 leading-[1.1]">
-            Innovate. Build. <br>
+            Innovate and Build. <br>
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400">
                 Scale with CapStone.
             </span>
