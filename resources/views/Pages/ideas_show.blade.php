@@ -1,20 +1,20 @@
-<x-nav title="Idea">
+<x-nav title="CapStone Project">
 
 
     {{-- ================= ACTION BAR ================= --}}
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
 
         <a href="{{ route('ideas') }}"
-            class="group inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-white transition-all">
+            class="group inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-blue-400 transition-all">
             <span class="transition-transform group-hover:-translate-x-1">←</span>
-            Back to Ideas
+            Back to Projects
         </a>
 
         <div class="flex items-center gap-3">
             {{-- EDIT --}}
             <button onclick="openEditModal()"
-                class="px-6 py-2.5 rounded-xl border border-white/5 bg-white/5 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all active:scale-95">
-                Edit Idea
+                class="px-6 py-2.5 rounded-xl border border-blue-500/30 bg-blue-600/15 text-sm font-semibold text-blue-200 hover:text-white hover:bg-blue-600/25 hover:border-blue-400 transition-all active:scale-95">
+                Edit Project
             </button>
 
             {{-- DELETE BUTTON --}}
@@ -25,38 +25,38 @@
         </div>
     </div>
 
-    {{-- ================= IDEA CARD ================= --}}
+    {{-- ================= PROJECT CARD ================= --}}
     <div class="max-w-4xl">
 
         @php
             $statusColors = [
-                'pending' => 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-                'in progress' => 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+                'pending' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                'in progress' => 'bg-blue-500/10 text-blue-400 border-blue-500/30',
                 'completed' => 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
             ];
 
             $status = strtolower($idea->status->value ?? $idea->status);
-            $badgeClass = $statusColors[$status] ?? 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+            $badgeClass = $statusColors[$status] ?? 'bg-slate-500/10 text-slate-400 border-slate-500/20';
         @endphp
 
         {{-- Main Container with subtle outer glow --}}
         <div class="relative group">
             <div
-                class="absolute -inset-px bg-gradient-to-b from-white/10 to-transparent rounded-[2.5rem] pointer-events-none">
+                class="absolute -inset-px bg-gradient-to-b from-blue-500/20 to-transparent rounded-[2.5rem] pointer-events-none">
             </div>
 
             <div
-                class="relative rounded-[2.5rem] border border-white/10 bg-[#0D0D0D] p-8 md:p-12 shadow-2xl overflow-hidden">
+                class="relative rounded-[2.5rem] border border-blue-500/20 bg-[#0F172A] p-8 md:p-12 shadow-2xl overflow-hidden">
 
                 {{-- Decorative background element --}}
                 <div
-                    class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-white/5 rounded-full blur-[80px] pointer-events-none">
+                    class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none">
                 </div>
 
                 {{-- Status Badge --}}
                 <span
                     class="inline-flex items-center gap-1.5 text-[11px] px-4 py-1.5 rounded-full border font-bold uppercase tracking-wider {{ $badgeClass }}">
-                    <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-current opacity-75"></span>
                     {{ $idea->status->value ?? $idea->status }}
                 </span>
 
@@ -65,13 +65,13 @@
                 </h1>
                 {{-- Idea Image --}}
                 @if (!empty($idea->image))
-                    <div class="mt-8 overflow-hidden rounded-2xl border border-white/10">
+                    <div class="mt-8 overflow-hidden rounded-2xl border border-blue-500/20">
                         <img src="{{ asset('storage/' . $idea->image) }}" alt="{{ $idea->title }}"
                             class="w-full max-h-[420px] object-cover">
                     </div>
                 @endif
                 <div class="mt-8 space-y-6">
-                    <p class="text-lg text-gray-400 leading-relaxed font-light">
+                    <p class="text-lg text-slate-300 leading-relaxed font-normal">
                         {{ $idea->description }}
                     </p>
                 </div>
@@ -79,14 +79,14 @@
                 <!-- Actionable Steps -->
                 @if ($idea->steps->isNotEmpty())
                     <div class="mt-10">
-                        <h2 class="text-2xl font-bold text-white mb-4">Actionable Steps</h2>
+                        <h2 class="text-2xl font-bold text-white mb-4">Actionable Milestones</h2>
                         <div class="space-y-3">
                             @foreach ($idea->steps as $step)
-                                <div class="flex items-center gap-3 p-3 rounded-xl border border-white/10 cursor-pointer transition-all hover:bg-white/5 view-step-row"
+                                <div class="flex items-center gap-3 p-3.5 rounded-xl border border-blue-500/20 bg-[#0B1120]/60 cursor-pointer transition-all hover:bg-blue-600/10 view-step-row"
                                     data-step-id="{{ $step->id }}">
                                     <div
                                         class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors
-                                @if ($step->completed) bg-emerald-500 border-emerald-500 @else border-white/20 @endif">
+                                @if ($step->completed) bg-emerald-500 border-emerald-500 @else border-blue-400/40 @endif">
                                         @if ($step->completed)
                                             <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
@@ -96,7 +96,7 @@
                                         @endif
                                     </div>
                                     <span
-                                        class="text-gray-400 @if ($step->completed) line-through text-gray-500 @endif">{{ $step->description }}</span>
+                                        class="text-slate-300 @if ($step->completed) line-through text-slate-500 @endif">{{ $step->description }}</span>
                                 </div>
                             @endforeach
                         </div>
@@ -106,12 +106,15 @@
                 <!-- Links Section -->
                 @if (!empty($idea->links))
                     <div class="mt-10">
-                        <h2 class="text-2xl font-bold text-white mb-4">Links</h2>
+                        <h2 class="text-2xl font-bold text-white mb-4">Resource Links</h2>
                         <ul class="space-y-2">
                             @foreach ($idea->links as $link)
                                 <li>
                                     <a href="{{ $link }}" target="_blank"
-                                        class="text-blue-400 hover:text-blue-500 underline break-all">
+                                        class="text-blue-400 hover:text-blue-300 underline break-all inline-flex items-center gap-1.5 font-medium">
+                                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
                                         {{ $link }}
                                     </a>
                                 </li>
@@ -121,15 +124,15 @@
                 @endif
 
                 <div
-                    class="mt-12 pt-8 border-t border-white/5 flex flex-wrap items-center gap-6 text-xs font-medium uppercase tracking-widest text-gray-500">
+                    class="mt-12 pt-8 border-t border-blue-500/15 flex flex-wrap items-center gap-6 text-xs font-medium uppercase tracking-widest text-slate-400">
                     <div class="flex items-center gap-2">
-                        <span class="text-white/20">Posted</span>
-                        <span class="text-gray-400">{{ $idea->created_at?->diffForHumans() }}</span>
+                        <span class="text-blue-400/60">Created</span>
+                        <span class="text-slate-300">{{ $idea->created_at?->diffForHumans() }}</span>
                     </div>
-                    <div class="h-1 w-1 rounded-full bg-white/20"></div>
+                    <div class="h-1 w-1 rounded-full bg-blue-500/40"></div>
                     <div class="flex items-center gap-2">
-                        <span class="text-white/20">Reference</span>
-                        <span class="text-gray-400">#{{ str_pad($idea->id, 4, '0', STR_PAD_LEFT) }}</span>
+                        <span class="text-blue-400/60">Project ID</span>
+                        <span class="text-slate-300">#{{ str_pad($idea->id, 4, '0', STR_PAD_LEFT) }}</span>
                     </div>
                 </div>
 
@@ -140,20 +143,25 @@
 
     {{-- ================= EDIT MODAL ================= --}}
     <div id="editIdeaModal"
-        class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
 
         <div
-            class="w-full max-w-lg rounded-[2rem] border border-white/10 bg-[#0A0A0A] shadow-2xl relative max-h-[90vh] flex flex-col">
+            class="w-full max-w-lg rounded-[2rem] border border-blue-500/25 bg-[#0F172A] shadow-2xl relative max-h-[90vh] flex flex-col shadow-blue-950/50">
 
             {{-- Header --}}
             <div class="p-8 pb-4">
                 <button onclick="closeEditModal()"
-                    class="absolute top-6 right-6 text-gray-500 hover:text-white">✕</button>
-                <h2 class="text-2xl font-bold text-white">Edit Idea</h2>
+                    class="absolute top-6 right-6 text-slate-400 hover:text-white">✕</button>
+                <h2 class="text-2xl font-bold text-white">Edit <span class="text-blue-400">Project</span></h2>
             </div>
 
             {{-- Body --}}
-            <div class="flex-1 overflow-y-auto px-8 pb-8">
+            <div class="flex-1 overflow-y-auto px-8 pb-8 
+                scrollbar-thin 
+                scrollbar-track-transparent 
+                scrollbar-thumb-blue-500/20 
+                hover:scrollbar-thumb-blue-500/40 
+                scrollbar-thumb-rounded-full">
 
                 <form id="editIdeaForm" method="POST" action="{{ route('ideas.update', $idea) }}"
                     enctype="multipart/form-data" class="space-y-6">
@@ -163,9 +171,9 @@
 
                     {{-- Title --}}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">Title *</label>
-                        <input type="text" name="title" value="{{ old('$idea->title', $idea->title) }}"
-                            class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white">
+                        <label class="block text-xs font-semibold text-blue-300/80 uppercase mb-2">Title *</label>
+                        <input type="text" name="title" value="{{ old('title', $idea->title) }}"
+                            class="w-full rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
                         @error('title')
                             <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
                         @enderror
@@ -173,9 +181,9 @@
 
                     {{-- Status --}}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">Status *</label>
+                        <label class="block text-xs font-semibold text-blue-300/80 uppercase mb-2">Status *</label>
                         <select name="status"
-                            class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 appearance-none [&>option]:bg-[#0A0A0A]">
+                            class="w-full rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 appearance-none [&>option]:bg-[#0B1120]">
                             <option value="pending" @selected($status === 'pending')>Pending</option>
                             <option value="in progress" @selected($status === 'in progress')>In Progress</option>
                             <option value="completed" @selected($status === 'completed')>Completed</option>
@@ -184,15 +192,15 @@
 
                     {{-- Description --}}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">Description</label>
+                        <label class="block text-xs font-semibold text-blue-300/80 uppercase mb-2">Description</label>
                         <textarea name="description" rows="4"
-                            class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white">{{ $idea->description }}</textarea>
+                            class="w-full rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none">{{ $idea->description }}</textarea>
                     </div>
 
                     {{-- ================= LINKS ================= --}}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-3">
-                            Links
+                        <label class="block text-xs font-semibold text-blue-300/80 uppercase mb-3">
+                            Resource Links
                         </label>
 
                         <div id="editLinksContainer" class="space-y-3">
@@ -205,7 +213,7 @@
                                 <div class="flex gap-2 edit-link-row">
                                     <input type="url" name="links[]" value="{{ $link }}"
                                         placeholder="https://example.com"
-                                        class="flex-1 rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white">
+                                        class="flex-1 rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
 
                                     <button type="button" onclick="removeEditLink(this)"
                                         class="px-3 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30">
@@ -216,7 +224,7 @@
                                 {{-- empty state --}}
                                 <div class="flex gap-2 edit-link-row">
                                     <input type="url" name="links[]" placeholder="https://example.com"
-                                        class="flex-1 rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white">
+                                        class="flex-1 rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
 
                                     <button type="button" onclick="removeEditLink(this)"
                                         class="px-3 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30">
@@ -228,12 +236,12 @@
                         </div>
 
                         <button type="button" onclick="addEditLink()"
-                            class="mt-3 text-sm text-gray-400 hover:text-white">
+                            class="mt-3 text-sm text-blue-400 hover:text-blue-300 font-medium">
                             + Add another link
                         </button>
                     </div>
                     <div class="mt-4">
-                        <label class="text-sm text-gray-300">Steps</label>
+                        <label class="block text-xs font-semibold text-blue-300/80 uppercase mb-2">Milestone Steps</label>
 
                         <div id="editStepsContainer" class="space-y-2 mt-2">
                             @foreach ($idea->steps as $index => $step)
@@ -244,10 +252,10 @@
 
                                     <input type="text" name="steps[{{ $index }}][description]"
                                         value="{{ $step->description }}"
-                                        class="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/20 text-white">
+                                        class="w-full px-3.5 py-2.5 rounded-xl bg-[#0B1120] border border-blue-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
 
                                     <button type="button" onclick="removeStep(this)"
-                                        class="px-3 py-2 bg-red-500 text-white rounded-lg">
+                                        class="px-3 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-xl">
                                         ✕
                                     </button>
 
@@ -255,17 +263,17 @@
                             @endforeach
                         </div>
 
-                        <button type="button" onclick="addStep()" class="mt-2 text-sm text-yellow-400">
+                        <button type="button" onclick="addStep()" class="mt-2 text-sm text-blue-400 hover:text-blue-300 font-medium">
                             + Add Step
                         </button>
                     </div>
 
                     {{-- IMAGE SECTION --}}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">Image</label>
+                        <label class="block text-xs font-semibold text-blue-300/80 uppercase mb-2">Image</label>
 
                         <input type="file" name="image" id="editImageInput" accept="image/*"
-                            class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white">
+                            class="w-full rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white focus:outline-none focus:border-blue-500">
 
                         {{-- Hidden remove flag --}}
                         <input type="hidden" name="remove_image" id="removeImageFlag" value="0">
@@ -275,11 +283,11 @@
 
                             <img id="editImagePreview"
                                 src="{{ $idea->image ? asset('storage/' . $idea->image) : '' }}"
-                                class="w-full h-48 object-cover rounded-xl border border-white/10">
+                                class="w-full h-48 object-cover rounded-xl border border-blue-500/20">
 
                             {{-- Remove button --}}
                             <button type="button" onclick="removeExistingImage()"
-                                class="absolute top-2 right-2 bg-black/70 hover:bg-black text-white rounded-full w-8 h-8 flex items-center justify-center">
+                                class="absolute top-2 right-2 bg-slate-900/80 hover:bg-slate-900 text-white rounded-full w-8 h-8 flex items-center justify-center border border-white/20">
                                 ✕
                             </button>
                         </div>
@@ -299,15 +307,15 @@
             </div>
 
             {{-- Footer --}}
-            <div class="p-8 pt-4 border-t border-white/5 flex justify-end gap-3">
+            <div class="p-8 pt-4 border-t border-blue-500/15 flex justify-end gap-3">
                 <button type="button" onclick="closeEditModal()"
-                    class="px-5 py-2 rounded-xl text-gray-400 hover:text-white">
+                    class="px-5 py-2 rounded-xl text-slate-400 hover:text-white">
                     Cancel
                 </button>
 
                 <button type="submit" form="editIdeaForm"
-                    class="px-6 py-2 rounded-xl bg-white text-black font-bold hover:bg-gray-200">
-                    Update Idea
+                    class="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-600/30 active:scale-95 transition-all">
+                    Update Project
                 </button>
             </div>
         </div>
@@ -317,12 +325,12 @@
     <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
 
         {{-- Backdrop with heavier blur --}}
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onclick="closeDeleteModal()">
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity" onclick="closeDeleteModal()">
         </div>
 
         {{-- Modal Content --}}
         <div
-            class="relative w-full max-w-md transform rounded-[2rem] border border-white/10 bg-[#121212] p-8 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] transition-all">
+            class="relative w-full max-w-md transform rounded-[2rem] border border-red-500/20 bg-[#0F172A] p-8 shadow-[0_0_50px_-12px_rgba(0,0,0,0.7)] transition-all">
 
             <div class="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -333,14 +341,14 @@
             </div>
 
             <h3 class="text-2xl font-bold text-white mb-2">Confirm Delete</h3>
-            <p class="text-gray-400 leading-relaxed mb-8">
+            <p class="text-slate-400 leading-relaxed mb-8">
                 Are you sure? This will permanently remove <span
                     class="text-white font-medium">"{{ $idea->title }}"</span>. This action is irreversible.
             </p>
 
             <div class="flex flex-col sm:flex-row justify-end gap-3">
                 <button onclick="closeDeleteModal()"
-                    class="order-2 sm:order-1 px-6 py-3 rounded-xl border border-white/5 text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                    class="order-2 sm:order-1 px-6 py-3 rounded-xl border border-blue-500/20 text-sm font-bold text-slate-400 hover:text-white hover:bg-blue-600/10 transition-all">
                     Cancel
                 </button>
 
@@ -348,7 +356,7 @@
                     @csrf
                     @method('DELETE')
                     <button type="submit"
-                        class="w-full px-6 py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-500 shadow-lg shadow-red-900/20 transition-all active:scale-95">
+                        class="w-full px-6 py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-500 shadow-lg shadow-red-900/30 transition-all active:scale-95">
                         Confirm Delete
                     </button>
                 </form>
@@ -460,7 +468,7 @@
         <input type="url"
                name="links[]"
                placeholder="https://example.com"
-               class="flex-1 rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white">
+               class="flex-1 rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
 
         <button type="button"
                 onclick="removeEditLink(this)"
@@ -494,12 +502,12 @@
         <div class="flex gap-2 step-row">
             <input type="text"
                    name="steps[${stepIndex}][description]"
-                   placeholder="Enter step..."
-                   class="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/20 text-white">
+                   placeholder="Enter milestone step..."
+                   class="w-full px-3.5 py-2.5 rounded-xl bg-[#0B1120] border border-blue-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
 
             <button type="button"
                     onclick="removeStep(this)"
-                    class="px-3 py-2 bg-red-500 text-white rounded-lg">
+                    class="px-3 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-xl">
                 ✕
             </button>
         </div>

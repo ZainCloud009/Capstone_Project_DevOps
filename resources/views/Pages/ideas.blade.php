@@ -1,17 +1,17 @@
-<x-nav title="Dashboard">
+<x-nav title="CapStone Projects">
 
     <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
         <div>
-            <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tighter">
-                Your Ideas
+            <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+                Your CapStone <span class="text-blue-400">Projects</span>
             </h1>
-            <p class="text-gray-500 mt-2 text-lg">Managing your creative pipeline.</p>
+            <p class="text-slate-400 mt-2 text-lg">Manage milestones, tasks, and creative pipeline.</p>
         </div>
 
         <button id="openIdeaModal"
-            class="flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-bold hover:bg-gray-200 transition active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-            <span>+</span>
-            New Idea
+            class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 transition active:scale-95">
+            <span class="text-lg leading-none">+</span>
+            New Project
         </button>
     </div>
 
@@ -30,10 +30,10 @@
             <a href="{{ route('ideas', ['status' => $key]) }}"
                 class="px-5 py-2 rounded-xl text-sm font-semibold border transition
                {{ $filter === $key
-                   ? 'bg-white text-black border-white'
-                   : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30 hover:text-white' }}">
+                   ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/30'
+                   : 'bg-[#0F172A]/70 text-slate-400 border-blue-500/20 hover:border-blue-400/40 hover:text-white' }}">
                 {{ $label }}
-                <span class="ml-2 text-xs opacity-70">({{ $counts[$key] ?? 0 }})</span>
+                <span class="ml-2 text-xs opacity-75">({{ $counts[$key] ?? 0 }})</span>
             </a>
         @endforeach
     </div>
@@ -41,25 +41,25 @@
     {{-- ✅ EMPTY STATE OR GRID --}}
     @if ($ideas->isEmpty())
         <div
-            class="relative group overflow-hidden text-center py-32 border border-white/5 rounded-[2rem] bg-gradient-to-b from-white/[0.03] to-transparent">
+            class="relative group overflow-hidden text-center py-32 border border-blue-500/20 rounded-[2rem] bg-gradient-to-b from-blue-900/10 to-[#0F172A]/40 backdrop-blur-sm">
             <div
-                class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/[0.05] via-transparent to-transparent opacity-50">
+                class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent opacity-60">
             </div>
             <div class="relative z-10">
                 <div
-                    class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
-                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="w-20 h-20 bg-blue-600/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-500/20 text-blue-400">
+                    <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                             d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
                 </div>
 
                 <h3 class="text-xl font-bold text-white mb-2">
-                    No {{ $filter !== 'all' ? $filter : '' }} ideas yet
+                    No {{ $filter !== 'all' ? $filter : '' }} projects yet
                 </h3>
 
-                <p class="text-gray-500 max-w-xs mx-auto">
-                    Try switching filters or create a new idea.
+                <p class="text-slate-400 max-w-xs mx-auto">
+                    Try switching filters or create a new CapStone project.
                 </p>
             </div>
         </div>
@@ -68,24 +68,24 @@
             @foreach ($ideas as $idea)
                 @php
                     $statusColors = [
-                        'pending' => 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-                        'in progress' => 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+                        'pending' => 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                        'in progress' => 'bg-blue-500/10 text-blue-400 border-blue-500/30',
                         'completed' => 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
                     ];
                     $status = strtolower($idea->status->value ?? $idea->status);
-                    $badgeClass = $statusColors[$status] ?? 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+                    $badgeClass = $statusColors[$status] ?? 'bg-slate-500/10 text-slate-400 border-slate-500/20';
                 @endphp
 
                 <a href="{{ route('ideas.show', $idea) }}" class="block">
                     <div
-                        class="group relative flex flex-col h-full rounded-[2rem] border border-white/[0.08] bg-[#0A0A0A] p-8 transition-all duration-500 hover:border-white/30 hover:shadow-[0_20px_50px_rgba(0,0,0,0.7)]">
+                        class="group relative flex flex-col h-full rounded-[2rem] border border-blue-500/20 bg-[#0F172A]/90 p-8 transition-all duration-500 hover:border-blue-500/50 hover:shadow-[0_20px_50px_rgba(15,23,42,0.9)] hover:-translate-y-1">
                         <div
-                            class="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                            class="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-blue-500/[0.06] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                         </div>
                         <div class="relative z-10 flex flex-col h-full">
                             {{-- Idea Image --}}
                             @if (!empty($idea->image))
-                                <div class="mb-6 overflow-hidden rounded-xl border border-white/10">
+                                <div class="mb-6 overflow-hidden rounded-xl border border-blue-500/20">
                                     <img src="{{ asset('storage/' . $idea->image) }}" alt="{{ $idea->title }}"
                                         class="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500">
                                 </div>
@@ -96,7 +96,7 @@
                                     {{ $idea->status->value ?? $idea->status }}
                                 </span>
 
-                                <div class="text-gray-600 group-hover:text-white transition-colors">
+                                <div class="text-slate-500 group-hover:text-blue-400 transition-colors">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
@@ -106,29 +106,29 @@
 
                             <div class="flex-1 text-left">
                                 <h2
-                                    class="text-xl font-bold text-white leading-tight mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-400 transition-all duration-300">
+                                    class="text-xl font-bold text-white leading-tight mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-sky-300 transition-all duration-300">
                                     {{ $idea->title }}
                                 </h2>
 
                                 <p
-                                    class="text-gray-400 text-sm leading-relaxed line-clamp-3 group-hover:text-gray-300 transition-colors">
+                                    class="text-slate-400 text-sm leading-relaxed line-clamp-3 group-hover:text-slate-300 transition-colors">
                                     {{ $idea->description }}
                                 </p>
                             </div>
 
-                            <div class="mt-8 pt-6 border-t border-white/[0.05] flex items-center justify-between">
+                            <div class="mt-8 pt-6 border-t border-blue-500/15 flex items-center justify-between">
                                 <div class="flex items-center gap-2">
                                     <div
-                                        class="w-2 h-2 rounded-full bg-white/20 group-hover:bg-white transition-colors">
+                                        class="w-2 h-2 rounded-full bg-blue-500/40 group-hover:bg-blue-400 transition-colors">
                                     </div>
-                                    <span class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+                                    <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
                                         {{ $idea->created_at?->diffForHumans() ?? 'Just now' }}
                                     </span>
                                 </div>
 
                                 <div
-                                    class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor"
+                                    class="w-8 h-8 rounded-full border border-blue-500/30 bg-blue-600/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0">
+                                    <svg class="w-4 h-4 text-blue-300" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -146,23 +146,23 @@
 
     <!-- ================= NEW IDEA MODAL ================= -->
     <div id="ideaModal" role="dialog" aria-modal="true" aria-labelledby="ideaModalTitle"
-        class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm overflow-hidden p-4">
+        class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md overflow-hidden p-4">
 
         <div
-            class="w-full max-w-lg flex flex-col max-h-[90vh] rounded-[2rem] border border-white/10 bg-[#0A0A0A] shadow-2xl relative">
+            class="w-full max-w-lg flex flex-col max-h-[90vh] rounded-[2rem] border border-blue-500/25 bg-[#0F172A] shadow-2xl relative shadow-blue-950/50">
 
             <div class="p-8 pb-4">
                 <button id="closeIdeaModal" aria-label="Close modal"
-                    class="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors">✕</button>
-                <h2 id="ideaModalTitle" class="text-2xl font-bold text-white">Create New Idea</h2>
+                    class="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">✕</button>
+                <h2 id="ideaModalTitle" class="text-2xl font-bold text-white">Create New <span class="text-blue-400">Project</span></h2>
             </div>
 
             <div
                 class="flex-1 overflow-y-auto px-8 pb-8 
                     scrollbar-thin 
                     scrollbar-track-transparent 
-                    scrollbar-thumb-white/10 
-                    hover:scrollbar-thumb-white/20 
+                    scrollbar-thumb-blue-500/20 
+                    hover:scrollbar-thumb-blue-500/40 
                     scrollbar-thumb-rounded-full">
 
                 <form id="ideaForm" method="POST" action="{{ route('ideas.store') }}" enctype="multipart/form-data"
@@ -170,21 +170,21 @@
                     @csrf
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Title
+                        <label class="block text-xs font-semibold text-blue-300/80 uppercase tracking-wider mb-2">Title
                             *</label>
-                        <input type="text" name="title" value="{{ old('title') }}" placeholder="Enter idea title"
-                            class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all">
+                        <input type="text" name="title" value="{{ old('title') }}" placeholder="Enter project title"
+                            class="w-full rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
                         @error('title')
                             <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Status
+                        <label class="block text-xs font-semibold text-blue-300/80 uppercase tracking-wider mb-2">Status
                             *</label>
                         <div class="relative">
                             <select name="status"
-                                class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 appearance-none [&>option]:bg-[#0A0A0A]">
+                                class="w-full rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 appearance-none [&>option]:bg-[#0B1120]">
                                 <option value="">Select status</option>
                                 <option value="pending" {{ old('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="in progress" {{ old('status') == 'in progress' ? 'selected' : '' }}>In
@@ -200,19 +200,19 @@
 
                     <div>
                         <label
-                            class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Description</label>
-                        <textarea name="description" rows="4" placeholder="Optional description..."
-                            class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 resize-none">{{ old('description') }}</textarea>
+                            class="block text-xs font-semibold text-blue-300/80 uppercase tracking-wider mb-2">Description</label>
+                        <textarea name="description" rows="4" placeholder="Optional project details and description..."
+                            class="w-full rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none">{{ old('description') }}</textarea>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                        <label class="block text-xs font-semibold text-blue-300/80 uppercase tracking-wider mb-2">
                             Image
                         </label>
 
                         <input type="file" name="image" id="imageInput" accept="image/*"
-                            class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white
-               focus:outline-none focus:border-white/30">
+                            class="w-full rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white
+               focus:outline-none focus:border-blue-500">
 
                         @error('image')
                             <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
@@ -220,51 +220,51 @@
 
                         <!-- Preview -->
                         <div id="imagePreviewWrapper" class="mt-4 hidden">
-                            <img id="imagePreview" class="w-full h-48 object-cover rounded-xl border border-white/10">
+                            <img id="imagePreview" class="w-full h-48 object-cover rounded-xl border border-blue-500/20">
                         </div>
                     </div>
 
                     <!-- Steps -->
                     <div>
                         <label
-                            class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Steps</label>
+                            class="block text-xs font-semibold text-blue-300/80 uppercase tracking-wider mb-2">Actionable Steps</label>
                         <div id="stepsWrapper" class="space-y-3">
                             <div class="flex gap-2 step-row">
-                                <input type="text" name="steps[]" placeholder="Describe this step"
-                                    class="flex-1 rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all">
+                                <input type="text" name="steps[]" placeholder="Describe this milestone step"
+                                    class="flex-1 rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
                                 <button type="button"
-                                    class="remove-step px-3 rounded-xl border border-red-500/20 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all">✕</button>
+                                    class="remove-step px-3 rounded-xl border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/15 transition-all">✕</button>
                             </div>
                         </div>
                         <button type="button" id="addStepBtn"
-                            class="mt-4 text-xs font-bold text-gray-500 hover:text-white transition-colors underline underline-offset-4">+
+                            class="mt-4 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-4">+
                             Add another step</button>
                     </div>
 
                     <div>
                         <label
-                            class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Links</label>
+                            class="block text-xs font-semibold text-blue-300/80 uppercase tracking-wider mb-2">Resource Links</label>
                         <div id="linksWrapper" class="space-y-3">
                             <div class="flex gap-2 link-row">
                                 <input type="url" name="links[]" placeholder="https://example.com"
-                                    class="flex-1 rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30">
+                                    class="flex-1 rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
                                 <button type="button"
-                                    class="remove-link px-3 rounded-xl border border-red-500/20 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all">✕</button>
+                                    class="remove-link px-3 rounded-xl border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/15 transition-all">✕</button>
                             </div>
                         </div>
                         <button type="button" id="addLinkBtn"
-                            class="mt-4 text-xs font-bold text-gray-500 hover:text-white transition-colors underline underline-offset-4">+
+                            class="mt-4 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-4">+
                             Add another link</button>
                     </div>
                 </form>
             </div>
 
-            <div class="p-8 pt-4 border-t border-white/5 flex justify-end gap-3">
+            <div class="p-8 pt-4 border-t border-blue-500/15 flex justify-end gap-3">
                 <button type="button" id="cancelIdeaModal"
-                    class="px-5 py-2 rounded-xl text-gray-400 hover:text-white transition-colors">Cancel</button>
+                    class="px-5 py-2 rounded-xl text-slate-400 hover:text-white transition-colors">Cancel</button>
                 <button type="submit" form="ideaForm"
-                    class="px-6 py-2 rounded-xl bg-white text-black font-bold hover:bg-gray-200 active:scale-95 transition-all">
-                    Create Idea
+                    class="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-600/30 active:scale-95 transition-all">
+                    Create Project
                 </button>
             </div>
         </div>
@@ -306,8 +306,8 @@
                 const div = document.createElement('div');
                 div.className = 'flex gap-2 link-row';
                 div.innerHTML = `
-                    <input type="url" name="links[]" placeholder="https://example.com" class="flex-1 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30">
-                    <button type="button" class="remove-link px-3 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10">✕</button>
+                    <input type="url" name="links[]" placeholder="https://example.com" class="flex-1 rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                    <button type="button" class="remove-link px-3 rounded-xl border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/15">✕</button>
                 `;
                 linksWrapper.appendChild(div);
             });
@@ -322,8 +322,8 @@
                 const div = document.createElement('div');
                 div.className = 'flex gap-2 step-row';
                 div.innerHTML = `
-        <input type="text" name="steps[]" placeholder="Describe this step" class="flex-1 rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all">
-        <button type="button" class="remove-step px-3 rounded-xl border border-red-500/20 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all">✕</button>
+        <input type="text" name="steps[]" placeholder="Describe this milestone step" class="flex-1 rounded-xl bg-[#0B1120] border border-blue-500/20 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+        <button type="button" class="remove-step px-3 rounded-xl border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/15 transition-all">✕</button>
     `;
                 stepsWrapper.appendChild(div);
             });
