@@ -1,59 +1,87 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+🚀 Excited to share my latest DevOps Milestone: Complete Containerization & Automated CI/CD Pipeline on AWS EC2! 🌐🐳
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+I recently completed an end-to-end DevOps deployment pipeline for "CapStone" – a full-stack project management web application built with Laravel 12.
 
-## About Laravel
+The goal was simple: Zero manual intervention from code commit to production deployment on AWS. 🎯
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Here is a breakdown of the architectural workflow and implementation:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+──────────────────────────────────────────────
+🏗️ SYSTEM ARCHITECTURE & CI/CD WORKFLOW
+──────────────────────────────────────────────
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+[ Developer ] ──> git push (main)
+      │
+      ▼
+┌────────────────────────────────────────────────────────┐
+│  GITHUB ACTIONS CI/CD PIPELINE                         │
+│                                                        │
+│  1️⃣ TEST & LINT (CI)                                   │
+│     ├── Setup PHP 8.3 & Node.js 20                     │
+│     ├── Composer & NPM Dependencies                    │
+│     ├── Compile Vite & Tailwind Assets                 │
+│     └── Execute PHPUnit Automated Test Suite           │
+│                                                        │
+│  2️⃣ DOCKER BUILD & PUSH                                │
+│     ├── Multi-Stage Dockerfile Build                   │
+│     ├── Layer Caching Optimization                     │
+│     └── Push Tagged Image to Docker Hub Registry       │
+│                                                        │
+│  3️⃣ AUTO DEPLOY TO AWS EC2 (CD via SSH)                │
+│     ├── Secure SSH Authentication with EC2             │
+│     ├── Self-Healing Docker Compose Setup              │
+│     ├── Pull Latest Application Image                  │
+│     ├── Orchestrate Multi-Container Stack              │
+│     └── Run DB Migrations & Production Caching         │
+└────────────────────────┬───────────────────────────────┘
+                         │
+                         ▼
+┌────────────────────────────────────────────────────────┐
+│  AWS EC2 PRODUCTION ENVIRONMENT (Docker Compose)       │
+│                                                        │
+│  ┌──────────────────┐  ┌──────────────────┐            │
+│  │   capstone_app   │  │   capstone_rds   │            │
+│  │   (Laravel 12)   ├──┤    (MySQL 8.0)   │            │
+│  │     Port 80      │  │    Port 3306     │            │
+│  └──────────────────┘  └────────┬─────────┘            │
+│                                 │                      │
+│                        ┌────────┴─────────┐            │
+│                        │ capstone_phpmyadmin│          │
+│                        │     Port 8080    │            │
+│                        └──────────────────┘            │
+└────────────────────────────────────────────────────────┘
 
-## Learning Laravel
+──────────────────────────────────────────────
+💡 KEY TECHNICAL HIGHLIGHTS
+──────────────────────────────────────────────
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+🔹 Multi-Stage Dockerization:
+Built an optimized multi-stage Dockerfile: Stage 1 compiles frontend assets via Node.js, and Stage 2 runs production-grade PHP 8.3 + Apache with OPcache and core extensions (pdo_mysql, mbstring, gd, zip, bcmath).
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+🔹 Orchestrated Multi-Container Stack:
+Defined 3 isolated services using Docker Compose:
+- Application Container: Serving the app on Port 80.
+- Database Container (RDS/MySQL 8.0): Configured with persistent volumes and healthcheck triggers.
+- phpMyAdmin Container: Secure web GUI for database management on Port 8080.
 
-## Laravel Sponsors
+🔹 Robust Self-Healing CI/CD Pipeline:
+Configured GitHub Actions (.github/workflows/Capstonepipeline.yml) to automatically:
+- Trigger on git push to main.
+- Run automated PHPUnit tests against isolated databases.
+- Handle dynamic Docker Compose CLI auto-installation on remote EC2 instances.
+- Execute seamless zero-downtime container replacement and database migrations.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+🔹 Real-World Troubleshooting:
+Encountered and solved real-world DevOps edge cases including MySQL 8 container user configuration conflicts, Docker volume lifecycle management, and container healthcheck dependencies (`service_healthy`).
 
-### Premium Partners
+Tech Stack:
+💻 Laravel 12 | PHP 8.3 | Apache
+🐳 Docker & Docker Compose
+☁️ AWS EC2 & Cloud Security Groups
+⚙️ GitHub Actions (CI/CD)
+🗄️ MySQL 8.0 & phpMyAdmin
+🎨 Tailwind CSS & Vite
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Continuous improvement and hands-on implementation are the best ways to master Cloud & DevOps! Would love to hear your thoughts and feedback. 👇
 
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+#DevOps #Docker #AWS #CloudComputing #GitHubActions #CICD #DockerCompose #Laravel #WebDevelopment #SoftwareEngineering #Automation #ContinuousIntegration #AWSCloud
