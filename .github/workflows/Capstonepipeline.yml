@@ -139,12 +139,34 @@ jobs:
               git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
             fi
 
-            # Determine docker-compose command syntax
+            # Determine docker-compose command syntax or auto-install if missing
             if docker compose version >/dev/null 2>&1; then
               COMPOSE_CMD="docker compose"
-            else
+            elif command -v docker-compose >/dev/null 2>&1; then
               COMPOSE_CMD="docker-compose"
+            else
+              echo "==> Docker Compose not found on EC2. Auto-installing Docker Compose..."
+              mkdir -p ~/.docker/cli-plugins
+              ARCH=$(uname -m)
+              [ "$ARCH" = "x86_64" ] && COMPOSE_ARCH="x86_64" || COMPOSE_ARCH="aarch64"
+              curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${COMPOSE_ARCH}" -o ~/.docker/cli-plugins/docker-compose
+              chmod +x ~/.docker/cli-plugins/docker-compose
+
+              if sudo -n true 2>/dev/null; then
+                sudo cp ~/.docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+                sudo chmod +x /usr/local/bin/docker-compose
+              fi
+
+              if docker compose version >/dev/null 2>&1; then
+                COMPOSE_CMD="docker compose"
+              elif command -v docker-compose >/dev/null 2>&1; then
+                COMPOSE_CMD="docker-compose"
+              else
+                COMPOSE_CMD="$HOME/.docker/cli-plugins/docker-compose"
+              fi
             fi
+
+            echo "==> Using compose command: $COMPOSE_CMD"
 
             # Export Docker image tag in lowercase
             DOCKER_IMAGE=$(echo "${{ secrets.DOCKERHUB_USERNAME }}/capstone-project:latest" | tr '[:upper:]' '[:lower:]')
