@@ -1,0 +1,85 @@
+services:
+  # ==========================================
+  # 1. Laravel Application Service
+  # ==========================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_IMAGE:-capstone-app:latest}
+    container_name: capstone_app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      APP_NAME: "CapStone"
+      APP_ENV: "${APP_ENV:-production}"
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      APP_KEY: "${APP_KEY:-base64:79diLxbM3/y28VpmB5guR0XKk8FSz8BMGXgWg3qu8ko=}"
+      APP_URL: "${APP_URL:-http://localhost}"
+      DB_CONNECTION: "mysql"
+      DB_HOST: "rds"
+      DB_PORT: "3306"
+      DB_DATABASE: "${DB_DATABASE:-idea}"
+      DB_USERNAME: "${DB_USERNAME:-capstone_user}"
+      DB_PASSWORD: "${DB_PASSWORD:-capstone_password}"
+    depends_on:
+      rds:
+        condition: service_healthy
+    volumes:
+      - app_storage:/var/www/html/storage
+    networks:
+      - capstone_network
+
+  # ==========================================
+  # 2. Database (RDS / MySQL Service)
+  # ==========================================
+  rds:
+    image: mysql:8.0
+    container_name: capstone_rds
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: "${DB_DATABASE:-idea}"
+      MYSQL_USER: "${DB_USERNAME:-capstone_user}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-capstone_password}"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-root_password}"
+    volumes:
+      - rds_data:/var/lib/mysql
+    networks:
+      - capstone_network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER -p$$MYSQL_PASSWORD || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ==========================================
+  # 3. phpMyAdmin Management Service
+  # ==========================================
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: capstone_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: rds
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      - rds
+    networks:
+      - capstone_network
+
+networks:
+  capstone_network:
+    driver: bridge
+
+volumes:
+  rds_data:
+    driver: local
+  app_storage:
+    driver: local
