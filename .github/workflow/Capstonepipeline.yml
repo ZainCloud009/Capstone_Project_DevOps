@@ -91,10 +91,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY || 'capstonerepo' }}
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}
           tags: |
             type=raw,value=latest
-            type=sha,format=short
 
       - name: Build and Push Docker Image to Amazon ECR
         uses: docker/build-push-action@v6
@@ -102,6 +101,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
