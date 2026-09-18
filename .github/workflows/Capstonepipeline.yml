@@ -91,7 +91,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY || 'capstonerepo' }}
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}
           tags: |
             type=raw,value=latest
             type=sha,format=short
@@ -124,7 +124,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           ECR_REGISTRY: ${{ needs.build-and-push.outputs.ecr_registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY || 'capstonerepo' }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
@@ -196,7 +196,7 @@ jobs:
               ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
               ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
             fi
-            ECR_REPOSITORY="${ECR_REPOSITORY:-capstonerepo}"
+            ECR_REPOSITORY="${ECR_REPOSITORY:-capstoneprojrepo}"
 
             # Authenticate Docker with Amazon ECR
             echo "==> Authenticating Docker with Amazon ECR ($ECR_REGISTRY)..."
