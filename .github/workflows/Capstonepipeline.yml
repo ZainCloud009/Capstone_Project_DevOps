@@ -67,7 +67,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
-      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
+      image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}:latest
 
     steps:
       - name: Checkout Source Code
@@ -78,7 +78,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION || 'eu-north-1' }}
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -108,129 +108,37 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ==========================================
-  # STAGE 3: Auto Deployment to AWS EC2 from ECR
+  # STAGE 3: Auto Deployment to AWS ECS (EC2)
   # ==========================================
   deploy:
-    name: Deploy to AWS EC2 from ECR
+    name: Deploy to AWS ECS (EC2 Launch Type)
     needs: build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy on AWS EC2 via SSH
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          ECR_REGISTRY: ${{ needs.build-and-push.outputs.ecr_registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,ECR_REGISTRY,ECR_REPOSITORY
-          script: |
-            set -e
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'eu-north-1' }}
 
-            echo "==> Starting CapStone Deployment on AWS EC2..."
+      - name: Render Amazon ECS Task Definition
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: capstone-app
+          image: ${{ needs.build-and-push.outputs.image }}
 
-            APP_DIR="~/capstone-app"
-            mkdir -p $APP_DIR
-            cd $APP_DIR
-
-            # Clone repository if first time, or pull latest changes
-            if [ -d .git ]; then
-              git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-              git pull origin main
-            else
-              git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
-            fi
-
-            # Determine docker-compose command syntax or auto-install if missing
-            if docker compose version >/dev/null 2>&1; then
-              COMPOSE_CMD="docker compose"
-            elif command -v docker-compose >/dev/null 2>&1; then
-              COMPOSE_CMD="docker-compose"
-            else
-              echo "==> Docker Compose not found on EC2. Auto-installing Docker Compose..."
-              mkdir -p ~/.docker/cli-plugins
-              ARCH=$(uname -m)
-              [ "$ARCH" = "x86_64" ] && COMPOSE_ARCH="x86_64" || COMPOSE_ARCH="aarch64"
-              curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${COMPOSE_ARCH}" -o ~/.docker/cli-plugins/docker-compose
-              chmod +x ~/.docker/cli-plugins/docker-compose
-
-              if sudo -n true 2>/dev/null; then
-                sudo cp ~/.docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
-                sudo chmod +x /usr/local/bin/docker-compose
-              fi
-
-              if docker compose version >/dev/null 2>&1; then
-                COMPOSE_CMD="docker compose"
-              elif command -v docker-compose >/dev/null 2>&1; then
-                COMPOSE_CMD="docker-compose"
-              else
-                COMPOSE_CMD="$HOME/.docker/cli-plugins/docker-compose"
-              fi
-            fi
-
-            echo "==> Using compose command: $COMPOSE_CMD"
-
-            # Check / Ensure AWS CLI is installed on EC2
-            if ! command -v aws >/dev/null 2>&1; then
-              echo "==> Installing AWS CLI on EC2..."
-              curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "/tmp/awscliv2.zip"
-              unzip -q -o /tmp/awscliv2.zip -d /tmp/
-              if sudo -n true 2>/dev/null; then
-                sudo /tmp/aws/install --update || true
-              else
-                /tmp/aws/install -i ~/.local/aws-cli -b ~/.local/bin --update || true
-                export PATH="$HOME/.local/bin:$PATH"
-              fi
-              rm -rf /tmp/aws /tmp/awscliv2.zip
-            fi
-
-            # Fallback for ECR Registry domain if not passed via output
-            if [ -z "$ECR_REGISTRY" ]; then
-              ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-              ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-            fi
-            ECR_REPOSITORY="${ECR_REPOSITORY:-capstoneprojrepo}"
-
-            # Authenticate Docker with Amazon ECR
-            echo "==> Authenticating Docker with Amazon ECR ($ECR_REGISTRY)..."
-            aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-
-            # Set image name for Docker Compose
-            DOCKER_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
-            export DOCKER_IMAGE
-
-            # Pull latest application image from AWS ECR
-            echo "==> Pulling latest Docker image: $DOCKER_IMAGE"
-            docker pull "$DOCKER_IMAGE"
-
-            # Stop and remove old running containers (volumes rds_data & app_storage preserved)
-            echo "==> Stopping and removing old containers..."
-            $COMPOSE_CMD down --remove-orphans || true
-
-            # Start new containers with freshly pulled ECR image
-            echo "==> Launching updated containers with $COMPOSE_CMD..."
-            $COMPOSE_CMD up -d --remove-orphans
-
-            # Allow database service a few moments to pass health check
-            echo "==> Waiting for database and services to become healthy..."
-            sleep 15
-
-            # Run database migrations and cache commands inside container
-            echo "==> Running migrations and optimization..."
-            $COMPOSE_CMD exec -T app php artisan migrate --force || true
-            $COMPOSE_CMD exec -T app php artisan config:cache || true
-            $COMPOSE_CMD exec -T app php artisan route:cache || true
-            $COMPOSE_CMD exec -T app php artisan view:cache || true
-
-            # Clean up old unused images to save disk space
-            echo "==> Cleaning up unused Docker images..."
-            docker image prune -af --filter "until=24h" || true
-
-            echo "==> CapStone Deployment from AWS ECR to AWS EC2 completed successfully!"
+      - name: Deploy Amazon ECS Task Definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE || 'capstone-service' }}
+          cluster: ${{ secrets.ECS_CLUSTER || 'capstone-cluster' }}
+          wait-for-service-stability: true

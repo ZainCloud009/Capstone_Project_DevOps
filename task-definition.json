@@ -1,0 +1,78 @@
+{
+  "family": "capstone-task",
+  "networkMode": "bridge",
+  "requiresCompatibilities": [
+    "EC2"
+  ],
+  "executionRoleArn": "arn:aws:iam::634236768016:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "capstone-app",
+      "image": "634236768016.dkr.ecr.eu-north-1.amazonaws.com/capstoneprojrepo:latest",
+      "cpu": 256,
+      "memory": 512,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "APP_NAME",
+          "value": "CapStone"
+        },
+        {
+          "name": "APP_ENV",
+          "value": "production"
+        },
+        {
+          "name": "APP_DEBUG",
+          "value": "false"
+        },
+        {
+          "name": "APP_KEY",
+          "value": "base64:79diLxbM3/y28VpmB5guR0XKk8FSz8BMGXgWg3qu8ko="
+        },
+        {
+          "name": "APP_URL",
+          "value": "http://localhost"
+        },
+        {
+          "name": "DB_CONNECTION",
+          "value": "mysql"
+        },
+        {
+          "name": "DB_HOST",
+          "value": "127.0.0.1"
+        },
+        {
+          "name": "DB_PORT",
+          "value": "3306"
+        },
+        {
+          "name": "DB_DATABASE",
+          "value": "idea"
+        },
+        {
+          "name": "DB_USERNAME",
+          "value": "root"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "value": "root_password"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/capstone-task",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
