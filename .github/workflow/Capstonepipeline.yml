@@ -87,11 +87,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set Image URI Output
-        id: set-image
-        run: |
-          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}:latest" >> $GITHUB_OUTPUT
-
       - name: Extract Metadata for Docker Tags
         id: meta
         uses: docker/metadata-action@v5
@@ -99,6 +94,7 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}
           tags: |
             type=raw,value=latest
+            type=sha,format=short
 
       - name: Build and Push Docker Image to Amazon ECR
         uses: docker/build-push-action@v6
@@ -111,6 +107,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Set Image URI Output
+        id: set-image
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}:sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
   # ==========================================
   # STAGE 3: Auto Deployment to AWS ECS (EC2)
