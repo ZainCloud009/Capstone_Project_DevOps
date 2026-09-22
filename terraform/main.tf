@@ -111,6 +111,11 @@ resource "aws_iam_role_policy_attachment" "ecr_readonly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
+resource "aws_iam_role_policy_attachment" "ssm_core" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "capstone-ec2-instance-profile"
   role = aws_iam_role.ec2_role.name
@@ -246,31 +251,18 @@ resource "aws_launch_template" "app_lt" {
     # 1. Update system packages
     dnf update -y
 
-    # 2. Install Docker, AWS CLI & Git
-    dnf install -y awscli docker git wget unzip tar
+    # 2. Install Tools, Git, Apache & PHP 8.3 with all extensions
+    dnf install -y awscli git wget unzip tar httpd
+    dnf install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysqlnd php8.3-mbstring php8.3-xml php8.3-curl php8.3-gd php8.3-zip php8.3-bcmath php8.3-intl php8.3-opcache
 
-    # Enable and start Docker
-    systemctl enable --now docker
-    usermod -aG docker ec2-user
-
-    # Install Docker Compose plugin
-    DOCKER_CONFIG=/usr/local/lib/docker
-    mkdir -p $DOCKER_CONFIG/cli-plugins
-    curl -sSL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
-    chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
-    ln -s $DOCKER_CONFIG/cli-plugins/docker-compose /usr/local/bin/docker-compose || true
-
-    # 3. Install PHP 8.3, Apache & Extensions (for CLI tools & phpMyAdmin)
-    dnf install -y httpd php8.3 php8.3-cli php8.3-fpm php8.3-mysqlnd php8.3-mbstring php8.3-xml php8.3-curl php8.3-gd php8.3-zip php8.3-bcmath php8.3-intl php8.3-opcache
-
-    # 4. Install Node.js 20 & NPM
+    # 3. Install Node.js 20 & NPM
     curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
     dnf install -y nodejs
 
-    # 5. Install Composer
+    # 4. Install Composer globally
     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-    # 6. Install & Configure phpMyAdmin on Port 8080
+    # 5. Install & Configure phpMyAdmin in /var/www/html/phpmyadmin
     PMA_VER="5.2.1"
     wget -q https://files.phpmyadmin.net/phpMyAdmin/$${PMA_VER}/phpMyAdmin-$${PMA_VER}-all-languages.tar.gz -O /tmp/pma.tar.gz
     mkdir -p /var/www/html/phpmyadmin
@@ -284,55 +276,78 @@ resource "aws_launch_template" "app_lt" {
     sed -i "s/\$cfg\['blowfish_secret'\] = '';/\$cfg\['blowfish_secret'\] = '$BLOWFISH_SECRET';/" /var/www/html/phpmyadmin/config.inc.php
     sed -i "s/\$cfg\['Servers'\]\[\$i\]\['host'\] = 'localhost';/\$cfg\['Servers'\]\[\$i\]\['host'\] = '$RDS_ENDPOINT';/" /var/www/html/phpmyadmin/config.inc.php
 
-    # Configure Apache to listen on port 8080 for phpMyAdmin (Port 80 reserved for App Container)
-    sed -i 's/Listen 80/Listen 8080/' /etc/httpd/conf/httpd.conf
-    cat <<'APACHECONF' > /etc/httpd/conf.d/phpmyadmin.conf
-    <VirtualHost *:8080>
-        DocumentRoot /var/www/html/phpmyadmin
-        <Directory "/var/www/html/phpmyadmin">
-            Options Indexes FollowSymLinks
-            AllowOverride All
-            Require all granted
-        </Directory>
-    </VirtualHost>
-    APACHECONF
-
-    chown -R apache:apache /var/www/html
-    chmod -R 755 /var/www/html
-    systemctl enable --now php-fpm
-    systemctl enable --now httpd
-
-    # 7. Clone Repository to ec2-user directory
-    APP_DIR="/home/ec2-user/capstone-app"
+    # 6. Clone Application Repository to /var/www/html/Capstone_Project_DevOps
+    APP_DIR="/var/www/html/Capstone_Project_DevOps"
     mkdir -p $APP_DIR
     git clone https://github.com/ZainCloud009/Capstone_Project_DevOps.git $APP_DIR || true
-    chown -R ec2-user:ec2-user $APP_DIR
+    cd $APP_DIR
 
-    # 8. Configure .env with RDS Database
+    # Configure .env with RDS Database
     if [ -f "$APP_DIR/.env.example" ]; then
       cp "$APP_DIR/.env.example" "$APP_DIR/.env"
       sed -i "s/DB_HOST=127.0.0.1/DB_HOST=$RDS_ENDPOINT/" "$APP_DIR/.env"
       sed -i "s/DB_DATABASE=laravel/DB_DATABASE=idea/" "$APP_DIR/.env"
       sed -i "s/DB_USERNAME=root/DB_USERNAME=admin/" "$APP_DIR/.env"
       sed -i "s/DB_PASSWORD=/DB_PASSWORD=RootPassword123!/" "$APP_DIR/.env"
+      sed -i "s|APP_URL=http://localhost|APP_URL=https://iamzain.space|" "$APP_DIR/.env"
+      sed -i "s/APP_ENV=local/APP_ENV=production/" "$APP_DIR/.env"
+      sed -i "s/APP_DEBUG=true/APP_DEBUG=false/" "$APP_DIR/.env"
     fi
 
-    # 9. Pull and Run Application from ECR on Port 80
-    REGISTRY_ID="${aws_ecr_repository.app_repo.repository_url}"
-    aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin "$REGISTRY_ID" || true
-    docker pull "$REGISTRY_ID:latest" || true
-    docker run -d --name capstone_app --restart unless-stopped -p 80:80 \
-      -e APP_NAME="CapStone" \
-      -e APP_ENV="production" \
-      -e APP_DEBUG="false" \
-      -e APP_KEY="base64:79diLxbM3/y28VpmB5guR0XKk8FSz8BMGXgWg3qu8ko=" \
-      -e DB_CONNECTION="mysql" \
-      -e DB_HOST="$RDS_ENDPOINT" \
-      -e DB_PORT="3306" \
-      -e DB_DATABASE="idea" \
-      -e DB_USERNAME="admin" \
-      -e DB_PASSWORD="RootPassword123!" \
-      "$REGISTRY_ID:latest" || true
+    # Install Composer dependencies
+    export COMPOSER_ALLOW_SUPERUSER=1
+    composer install --no-dev --optimize-autoloader --no-interaction || true
+
+    # Generate App Key, migrate database, and optimize Laravel
+    php artisan key:generate --force || true
+    php artisan migrate --force || true
+    php artisan storage:link || true
+    php artisan config:cache || true
+    php artisan route:cache || true
+    php artisan view:cache || true
+
+    # Install NPM packages and build frontend assets
+    npm install || true
+    npm run build || true
+
+    # 7. Configure Apache VirtualHost on Port 80
+    cat <<'APACHECONF' > /etc/httpd/conf.d/capstone.conf
+<VirtualHost *:80>
+    ServerName iamzain.space
+    ServerAlias iamzain.space
+    ServerAdmin www@localhost
+    DocumentRoot "/var/www/html/Capstone_Project_DevOps/public"
+    AccessFileName .htaccess
+
+    Alias /phpmyadmin /var/www/html/phpmyadmin
+    <Directory "/var/www/html/phpmyadmin">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    <Directory "/var/www/html/Capstone_Project_DevOps/public">
+        Options Indexes FollowSymLinks
+        Order allow,deny
+        Allow from All
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog /var/log/httpd/capstone_error.log
+    CustomLog /var/log/httpd/capstone_access.log combined
+</VirtualHost>
+APACHECONF
+
+    # 8. Set correct file permissions for Apache
+    chown -R apache:apache /var/www/html
+    chmod -R 775 $APP_DIR/storage $APP_DIR/bootstrap/cache || true
+
+    # 9. Enable and start PHP-FPM and Apache HTTPD services
+    systemctl enable --now php-fpm
+    systemctl enable --now httpd
+    systemctl restart php-fpm
+    systemctl restart httpd
   EOF
   )
 

@@ -20,5 +20,5 @@ output "rds_endpoint" {
 
 output "phpmyadmin_url" {
   description = "URL to access phpMyAdmin"
-  value       = "http://${aws_lb.alb.dns_name}:8080"
+  value       = "https://${var.domain_name}/phpmyadmin"
 }

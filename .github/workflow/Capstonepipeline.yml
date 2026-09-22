@@ -201,21 +201,16 @@ jobs:
               ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
             fi
 
-            # Authenticate Docker with Amazon ECR
+            # Authenticate Docker with Amazon ECR & pull latest image backup
             echo "==> Authenticating Docker with Amazon ECR ($ECR_REGISTRY)..."
-            aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-
-            # Set image name
+            aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY" || true
             DOCKER_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+            docker pull "$DOCKER_IMAGE" || true
 
-            # Pull latest application image from AWS ECR
-            echo "==> Pulling latest Docker image: $DOCKER_IMAGE"
-            docker pull "$DOCKER_IMAGE"
-
-            # Stop and remove old running container if exists
-            echo "==> Stopping and removing old container..."
-            docker stop capstone_app 2>/dev/null || true
-            docker rm capstone_app 2>/dev/null || true
+            # Stop any conflicting Docker container on port 80 so Apache owns port 80
+            echo "==> Ensuring Port 80 is dedicated to Apache..."
+            sudo docker stop capstone_app 2>/dev/null || true
+            sudo docker rm capstone_app 2>/dev/null || true
 
             # Discover RDS MySQL endpoint dynamically
             RDS_HOST=$(aws rds describe-db-instances \
@@ -224,36 +219,92 @@ jobs:
               --output text \
               --region "$AWS_REGION" 2>/dev/null || echo "127.0.0.1")
 
-            echo "==> Launching updated container on Port 80..."
-            docker run -d \
-              --name capstone_app \
-              --restart unless-stopped \
-              -p 80:80 \
-              -e APP_NAME="CapStone" \
-              -e APP_ENV="production" \
-              -e APP_DEBUG="false" \
-              -e APP_KEY="base64:79diLxbM3/y28VpmB5guR0XKk8FSz8BMGXgWg3qu8ko=" \
-              -e APP_URL="https://iamzain.space" \
-              -e DB_CONNECTION="mysql" \
-              -e DB_HOST="$RDS_HOST" \
-              -e DB_PORT="3306" \
-              -e DB_DATABASE="idea" \
-              -e DB_USERNAME="admin" \
-              -e DB_PASSWORD="RootPassword123!" \
-              "$DOCKER_IMAGE"
+            APP_DIR="/var/www/html/Capstone_Project_DevOps"
+            sudo mkdir -p "$APP_DIR"
 
-            echo "==> Waiting for application container to initialize..."
-            sleep 10
+            if [ ! -d "$APP_DIR/.git" ]; then
+              echo "==> Cloning application to $APP_DIR..."
+              sudo git clone https://github.com/ZainCloud009/Capstone_Project_DevOps.git "$APP_DIR"
+            else
+              echo "==> Pulling latest changes from Git..."
+              cd "$APP_DIR"
+              sudo git fetch origin main
+              sudo git reset --hard origin/main
+            fi
 
-            # Run database migrations and Laravel optimizations inside container
-            echo "==> Running migrations and optimization..."
-            docker exec -t capstone_app php artisan migrate --force || true
-            docker exec -t capstone_app php artisan config:cache || true
-            docker exec -t capstone_app php artisan route:cache || true
-            docker exec -t capstone_app php artisan view:cache || true
+            cd "$APP_DIR"
 
-            # Clean up old unused images to save disk space
-            echo "==> Cleaning up unused Docker images..."
-            docker image prune -af --filter "until=24h" || true
+            # Configure .env with RDS credentials
+            if [ ! -f .env ]; then
+              sudo cp .env.example .env
+              sudo sed -i "s/DB_HOST=127.0.0.1/DB_HOST=$RDS_HOST/" .env
+              sudo sed -i "s/DB_DATABASE=laravel/DB_DATABASE=idea/" .env
+              sudo sed -i "s/DB_USERNAME=root/DB_USERNAME=admin/" .env
+              sudo sed -i "s/DB_PASSWORD=/DB_PASSWORD=RootPassword123!/" .env
+              sudo sed -i "s|APP_URL=http://localhost|APP_URL=https://iamzain.space|" .env
+              sudo sed -i "s/APP_ENV=local/APP_ENV=production/" .env
+              sudo sed -i "s/APP_DEBUG=true/APP_DEBUG=false/" .env
+              sudo php artisan key:generate --force || true
+            else
+              sudo sed -i "s/DB_HOST=.*/DB_HOST=$RDS_HOST/" .env
+            fi
 
-            echo "==> CapStone Deployment from AWS ECR to AWS EC2 completed successfully!"
+            # Install Composer packages
+            echo "==> Installing Composer packages..."
+            sudo COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction || true
+
+            # Run Database Migrations & Laravel caching
+            echo "==> Running migrations & Laravel optimization..."
+            sudo php artisan migrate --force || true
+            sudo php artisan storage:link || true
+            sudo php artisan config:cache || true
+            sudo php artisan route:cache || true
+            sudo php artisan view:cache || true
+
+            # Build Frontend Assets with NPM
+            echo "==> Building frontend assets with NPM..."
+            sudo npm install || true
+            sudo npm run build || true
+
+            # Configure Apache VirtualHost on Port 80
+            echo "==> Configuring Apache VirtualHost on Port 80..."
+            sudo tee /etc/httpd/conf.d/capstone.conf > /dev/null <<'APACHECONF'
+<VirtualHost *:80>
+    ServerName iamzain.space
+    ServerAlias iamzain.space
+    ServerAdmin www@localhost
+    DocumentRoot "/var/www/html/Capstone_Project_DevOps/public"
+    AccessFileName .htaccess
+
+    Alias /phpmyadmin /var/www/html/phpmyadmin
+    <Directory "/var/www/html/phpmyadmin">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    <Directory "/var/www/html/Capstone_Project_DevOps/public">
+        Options Indexes FollowSymLinks
+        Order allow,deny
+        Allow from All
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog /var/log/httpd/capstone_error.log
+    CustomLog /var/log/httpd/capstone_access.log combined
+</VirtualHost>
+APACHECONF
+
+            # Fix permissions for Apache
+            sudo chown -R apache:apache /var/www/html
+            sudo chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" || true
+
+            # Enable and restart PHP-FPM and Apache HTTPD
+            echo "==> Restarting PHP-FPM and Apache HTTPD..."
+            sudo systemctl enable --now php-fpm
+            sudo systemctl enable --now httpd
+            sudo systemctl restart php-fpm
+            sudo systemctl restart httpd
+
+            echo "==> CapStone Deployment on Apache completed successfully!"
