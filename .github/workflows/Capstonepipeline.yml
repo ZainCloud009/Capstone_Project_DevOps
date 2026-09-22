@@ -138,17 +138,25 @@ jobs:
       - name: Discover EC2 Host IP
         id: get-host
         run: |
-          if [ -n "${{ secrets.EC2_HOST }}" ]; then
+          echo "Querying running EC2 instances from Auto Scaling Group..."
+          IPS=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=capstone-asg-server" "Name=instance-state-name,Values=running" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text \
+            --region ${{ secrets.AWS_REGION || 'eu-north-1' }})
+
+          # Format space-separated IPs into comma-separated list for multi-host SSH
+          HOSTS=$(echo "$IPS" | xargs | tr ' ' ',')
+
+          if [ -n "$HOSTS" ] && [ "$HOSTS" != "None" ]; then
+            echo "Discovered live EC2 Host(s): $HOSTS"
+            echo "host=$HOSTS" >> $GITHUB_OUTPUT
+          elif [ -n "${{ secrets.EC2_HOST }}" ]; then
+            echo "Falling back to secrets.EC2_HOST: ${{ secrets.EC2_HOST }}"
             echo "host=${{ secrets.EC2_HOST }}" >> $GITHUB_OUTPUT
           else
-            echo "Auto-discovering running EC2 server from Auto Scaling Group..."
-            PUBLIC_IP=$(aws ec2 describe-instances \
-              --filters "Name=tag:Name,Values=capstone-asg-server" "Name=instance-state-name,Values=running" \
-              --query "Reservations[0].Instances[0].PublicIpAddress" \
-              --output text \
-              --region ${{ secrets.AWS_REGION || 'eu-north-1' }})
-            echo "Discovered EC2 Public IP: $PUBLIC_IP"
-            echo "host=$PUBLIC_IP" >> $GITHUB_OUTPUT
+            echo "Error: No running EC2 instances found in Auto Scaling Group!"
+            exit 1
           fi
 
       - name: Deploy to EC2 via SSH
