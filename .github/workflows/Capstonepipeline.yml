@@ -139,11 +139,24 @@ jobs:
         id: get-host
         run: |
           echo "Querying running EC2 instances from Auto Scaling Group..."
-          IPS=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=capstone-asg-server" "Name=instance-state-name,Values=running" \
-            --query "Reservations[*].Instances[*].PublicIpAddress" \
-            --output text \
-            --region ${{ secrets.AWS_REGION || 'eu-north-1' }})
+          INSTANCE_IDS=$(aws autoscaling describe-auto-scaling-groups \
+            --region "${{ secrets.AWS_REGION || 'eu-north-1' }}" \
+            --query "AutoScalingGroups[?contains(AutoScalingGroupName, 'capstone-asg')].Instances[?LifecycleState=='InService'].InstanceId" \
+            --output text)
+
+          if [ -n "$INSTANCE_IDS" ]; then
+            IPS=$(aws ec2 describe-instances \
+              --instance-ids $INSTANCE_IDS \
+              --query "Reservations[*].Instances[*].PublicIpAddress" \
+              --output text \
+              --region "${{ secrets.AWS_REGION || 'eu-north-1' }}")
+          else
+            IPS=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=capstone-asg-server" "Name=instance-state-name,Values=running" \
+              --query "Reservations[*].Instances[*].PublicIpAddress" \
+              --output text \
+              --region "${{ secrets.AWS_REGION || 'eu-north-1' }}")
+          fi
 
           # Format space-separated IPs into comma-separated list for multi-host SSH
           HOSTS=$(echo "$IPS" | xargs | tr ' ' ',')
@@ -177,6 +190,16 @@ jobs:
             set -e
 
             echo "==> Starting CapStone Deployment on AWS EC2..."
+
+            # Ensure AWS_REGION and ECR_REPOSITORY defaults
+            AWS_REGION="${AWS_REGION:-eu-north-1}"
+            ECR_REPOSITORY="${ECR_REPOSITORY:-capstoneprojrepo}"
+
+            # Fallback for ECR_REGISTRY if empty
+            if [ -z "$ECR_REGISTRY" ] || [ "$ECR_REGISTRY" = "" ]; then
+              AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "634236768016")
+              ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+            fi
 
             # Authenticate Docker with Amazon ECR
             echo "==> Authenticating Docker with Amazon ECR ($ECR_REGISTRY)..."

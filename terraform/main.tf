@@ -246,8 +246,8 @@ resource "aws_launch_template" "app_lt" {
     # 1. Update system packages
     dnf update -y
 
-    # 2. Install Docker & Git
-    dnf install -y docker git wget unzip tar
+    # 2. Install Docker, AWS CLI & Git
+    dnf install -y awscli docker git wget unzip tar
 
     # Enable and start Docker
     systemctl enable --now docker
@@ -362,8 +362,8 @@ resource "aws_autoscaling_group" "app_asg" {
     version = "$Latest"
   }
 
-  health_check_type         = "ELB"
-  health_check_grace_period = 300
+  health_check_type         = "EC2"
+  health_check_grace_period = 600
 
   tag {
     key                 = "Name"
