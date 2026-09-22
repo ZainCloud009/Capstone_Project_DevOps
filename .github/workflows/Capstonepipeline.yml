@@ -67,6 +67,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
+      registry: ${{ steps.login-ecr.outputs.registry }}
       image: ${{ steps.set-image.outputs.image }}
 
     steps:
@@ -115,10 +116,10 @@ jobs:
           echo "image=${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}:sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
   # ==========================================
-  # STAGE 3: Auto Deployment to AWS ECS (EC2)
+  # STAGE 3: Auto Deployment to AWS EC2 from ECR
   # ==========================================
   deploy:
-    name: Deploy to AWS ECS (EC2 Launch Type)
+    name: Deploy to AWS EC2 from ECR
     needs: build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -134,27 +135,94 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION || 'eu-north-1' }}
 
-      - name: Resolve Docker Image URI
-        id: resolve-image
+      - name: Discover EC2 Host IP
+        id: get-host
         run: |
-          IMAGE="${{ needs.build-and-push.outputs.image }}"
-          if [ -z "$IMAGE" ]; then
-            IMAGE="634236768016.dkr.ecr.${{ secrets.AWS_REGION || 'eu-north-1' }}.amazonaws.com/${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}:latest"
+          if [ -n "${{ secrets.EC2_HOST }}" ]; then
+            echo "host=${{ secrets.EC2_HOST }}" >> $GITHUB_OUTPUT
+          else
+            echo "Auto-discovering running EC2 server from Auto Scaling Group..."
+            PUBLIC_IP=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=capstone-asg-server" "Name=instance-state-name,Values=running" \
+              --query "Reservations[0].Instances[0].PublicIpAddress" \
+              --output text \
+              --region ${{ secrets.AWS_REGION || 'eu-north-1' }})
+            echo "Discovered EC2 Public IP: $PUBLIC_IP"
+            echo "host=$PUBLIC_IP" >> $GITHUB_OUTPUT
           fi
-          echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
-      - name: Render Amazon ECS Task Definition
-        id: render-task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'eu-north-1' }}
+          ECR_REGISTRY: ${{ needs.build-and-push.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY || 'capstoneprojrepo' }}
         with:
-          task-definition: task-definition.json
-          container-name: capstone-app
-          image: ${{ steps.resolve-image.outputs.image }}
+          host: ${{ steps.get-host.outputs.host }}
+          username: ${{ secrets.EC2_USER || 'ec2-user' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,ECR_REGISTRY,ECR_REPOSITORY
+          script: |
+            set -e
 
-      - name: Deploy Amazon ECS Task Definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          service: ${{ secrets.ECS_SERVICE || 'capstone-service' }}
-          cluster: ${{ secrets.ECS_CLUSTER || 'capstone-cluster' }}
-          wait-for-service-stability: true
+            echo "==> Starting CapStone Deployment on AWS EC2..."
+
+            # Authenticate Docker with Amazon ECR
+            echo "==> Authenticating Docker with Amazon ECR ($ECR_REGISTRY)..."
+            aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+            # Set image name
+            DOCKER_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+            # Pull latest application image from AWS ECR
+            echo "==> Pulling latest Docker image: $DOCKER_IMAGE"
+            docker pull "$DOCKER_IMAGE"
+
+            # Stop and remove old running container if exists
+            echo "==> Stopping and removing old container..."
+            docker stop capstone_app 2>/dev/null || true
+            docker rm capstone_app 2>/dev/null || true
+
+            # Discover RDS MySQL endpoint dynamically
+            RDS_HOST=$(aws rds describe-db-instances \
+              --db-instance-identifier capstone-mysql-db \
+              --query "DBInstances[0].Endpoint.Address" \
+              --output text \
+              --region "$AWS_REGION" 2>/dev/null || echo "127.0.0.1")
+
+            echo "==> Launching updated container on Port 80..."
+            docker run -d \
+              --name capstone_app \
+              --restart unless-stopped \
+              -p 80:80 \
+              -e APP_NAME="CapStone" \
+              -e APP_ENV="production" \
+              -e APP_DEBUG="false" \
+              -e APP_KEY="base64:79diLxbM3/y28VpmB5guR0XKk8FSz8BMGXgWg3qu8ko=" \
+              -e APP_URL="https://iamzain.space" \
+              -e DB_CONNECTION="mysql" \
+              -e DB_HOST="$RDS_HOST" \
+              -e DB_PORT="3306" \
+              -e DB_DATABASE="idea" \
+              -e DB_USERNAME="admin" \
+              -e DB_PASSWORD="RootPassword123!" \
+              "$DOCKER_IMAGE"
+
+            echo "==> Waiting for application container to initialize..."
+            sleep 10
+
+            # Run database migrations and Laravel optimizations inside container
+            echo "==> Running migrations and optimization..."
+            docker exec -t capstone_app php artisan migrate --force || true
+            docker exec -t capstone_app php artisan config:cache || true
+            docker exec -t capstone_app php artisan route:cache || true
+            docker exec -t capstone_app php artisan view:cache || true
+
+            # Clean up old unused images to save disk space
+            echo "==> Cleaning up unused Docker images..."
+            docker image prune -af --filter "until=24h" || true
+
+            echo "==> CapStone Deployment from AWS ECR to AWS EC2 completed successfully!"
